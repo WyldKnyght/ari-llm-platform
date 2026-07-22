@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Application Specific
+.myfiles/
+config.example.json
+models.example.json
+
