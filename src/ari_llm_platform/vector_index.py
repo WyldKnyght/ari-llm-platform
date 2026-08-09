@@ -1,31 +1,56 @@
+import sqlite3
+from pathlib import Path
+
+import sqlite_vec
+
+
 class VectorIndex:
+    DEFAULT_DB_PATH = Path("src") / "data" / "db" / "ari.db"
+
     def __init__(self):
-        self.db_path = None
+        self.db_path = str(self.DEFAULT_DB_PATH)
         self.backend = None
         self.initialized = False
+        self.connection = None
 
-    def initialize(self, db_path: str, backend: str = "sqlite-vec") -> None:
-        self.db_path = db_path
+    def initialize(self, db_path: str | None = None, backend: str = "sqlite-vec") -> None:
+        self.db_path = db_path or str(self.DEFAULT_DB_PATH)
         self.backend = backend
         self.initialized = True
 
     def is_ready(self) -> bool:
         return self.initialized
 
-    def load_backend(self):
-        if self.backend == "sqlite-vec":
-            try:
-                import sqlite_vec  # noqa: F401
-                return "sqlite-vec-loaded"
-            except ImportError:
-                return "sqlite-vec-missing"
-        elif self.backend == "sqlite-vector":
-            try:
-                import sqlite_vector  # noqa: F401
-                return "sqlite-vector-loaded"
-            except ImportError:
-                return "sqlite-vector-missing"
-        raise ValueError(f"Unsupported backend: {self.backend}")
+    def load_backend(self) -> str:
+        if self.backend != "sqlite-vec":
+            raise ValueError(f"Unsupported backend: {self.backend}")
+
+        return "sqlite-vec-loaded"
+
+    def connect(self) -> sqlite3.Connection:
+        if not self.initialized:
+            self.initialize()
+
+        database_path = Path(self.db_path)
+        database_path.parent.mkdir(parents=True, exist_ok=True)
+
+        connection = sqlite3.connect(database_path)
+        try:
+            connection.enable_load_extension(True)
+            sqlite_vec.load(connection)
+        except Exception:
+            connection.close()
+            raise
+        finally:
+            connection.enable_load_extension(False)
+
+        self.connection = connection
+        return connection
+
+    def close(self) -> None:
+        if self.connection is not None:
+            self.connection.close()
+            self.connection = None
 
     def embed_text(self, text: str):
         return {

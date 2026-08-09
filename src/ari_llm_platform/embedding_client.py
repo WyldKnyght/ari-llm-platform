@@ -5,32 +5,28 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
-class LLMClient:
+class EmbeddingClient:
     def __init__(
         self,
         base_url: str,
         model: str,
-        max_tokens: int = 512,
-        temperature: float = 0.7,
+        expected_dimension: int | None = None,
         timeout_seconds: int = 120,
         transport: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
     ):
         self.base_url = base_url
         self.model = model
-        self.max_tokens = max_tokens
-        self.temperature = temperature
+        self.expected_dimension = expected_dimension
         self.timeout_seconds = timeout_seconds
         self.transport = transport
 
-    def generate(self, prompt: str) -> str:
-        if not prompt.strip():
-            raise ValueError("Prompt must not be empty.")
+    def embed(self, text: str) -> list[float]:
+        if not text.strip():
+            raise ValueError("Embedding text must not be empty.")
 
         payload = {
             "model": self.model,
-            "prompt": prompt,
-            "max_tokens": self.max_tokens,
-            "temperature": self.temperature,
+            "input": text,
         }
 
         response = (
@@ -40,16 +36,24 @@ class LLMClient:
         )
 
         try:
-            text = response["choices"][0]["text"]
+            embedding = response["data"][0]["embedding"]
         except (KeyError, IndexError, TypeError) as error:
             raise RuntimeError(
-                "LLM response did not contain choices[0].text."
+                "Embedding response did not contain data[0].embedding."
             ) from error
 
-        if not isinstance(text, str):
-            raise RuntimeError("LLM response text was not a string.")
+        vector = [float(value) for value in embedding]
 
-        return text.strip()
+        if (
+            self.expected_dimension is not None
+            and len(vector) != self.expected_dimension
+        ):
+            raise RuntimeError(
+                f"Expected {self.expected_dimension} dimensions, "
+                f"received {len(vector)}."
+            )
+
+        return vector
 
     def _post(self, payload: dict[str, Any]) -> dict[str, Any]:
         request = Request(
@@ -64,9 +68,9 @@ class LLMClient:
                 return json.loads(response.read().decode("utf-8"))
         except HTTPError as error:
             raise RuntimeError(
-                f"LLM backend returned HTTP {error.code}."
+                f"Embedding backend returned HTTP {error.code}."
             ) from error
         except URLError as error:
             raise RuntimeError(
-                f"LLM backend is unavailable: {error.reason}."
+                f"Embedding backend is unavailable: {error.reason}."
             ) from error

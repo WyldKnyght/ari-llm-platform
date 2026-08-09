@@ -4,7 +4,7 @@ from ari_llm_platform import VectorIndex
 def test_vector_index_initialize_sets_ready_path_and_backend():
     vi = VectorIndex()
     assert vi.is_ready() is False
-    assert vi.db_path is None
+    assert vi.db_path == r"src\data\db\ari.db"
     assert vi.backend is None
 
     vi.initialize(r"D:\ARI\Data\ari.db")
