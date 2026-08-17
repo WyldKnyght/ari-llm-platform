@@ -221,4 +221,7 @@ __marimo__/
 .myfiles/
 config.example.json
 models.example.json
-
+ari.db
+src/data/db/*.db
+*.db-wal
+*.db-shm
