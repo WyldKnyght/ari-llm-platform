@@ -1,0 +1,23 @@
+{
+  "registry_version": "4.0",
+  "specialists": [
+    {
+      "specialist_id": "document-metadata-review",
+      "display_name": "Document Metadata Review",
+      "status": "proposed",
+      "task_classes": ["document-management", "metadata-analysis"],
+      "capabilities": [
+        "identify candidate generic metadata fields from supplied content",
+        "return structured metadata suggestions without modifying source material"
+      ],
+      "allowed_tool_categories": [],
+      "risk_tier": "low",
+      "limitations": [
+        "does not access private vaults by default",
+        "does not modify documents or metadata",
+        "does not write durable memory"
+      ],
+      "validation_state": "unassessed"
+    }
+  ]
+}
